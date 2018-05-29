@@ -29,7 +29,12 @@ var ExampleImage = createReactClass({
   },
 
   componentWillMount() {
+    this._mounted = true;
     this._load(this.props.src);
+  },
+
+  componentWillUnmount() {
+    this._mounted = false;
   },
 
   componentWillReceiveProps(nextProps) {
@@ -74,7 +79,7 @@ var ExampleImage = createReactClass({
 
   _onLoad(/*string*/ src) {
     ReadyPool[src] = true;
-    if (this.isMounted() && src === this.props.src) {
+    if (this._mounted && src === this.props.src) {
       this.setState({
         src: src,
       });

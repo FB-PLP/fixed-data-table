@@ -8,8 +8,8 @@
     "react-dom": "^0.14.0 || ^15.0.0 || ^16.0.0"
   },
   "dependencies": {
-    "create-react-class": "^15.6.2",
-    "prop-types": "^15.5.0"
+    "create-react-class": "^15.0.0",
+    "prop-types": "^15.0.0"
   },
   "devDependencies": {
     "autoprefixer": "^5.0.0",

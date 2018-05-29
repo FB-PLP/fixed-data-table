@@ -1048,6 +1048,27 @@ return /******/ (function(modules) { // webpackBootstrap
 	     */
 	    componentWillUnmount: 'DEFINE_MANY',
 
+	    /**
+	     * Replacement for (deprecated) `componentWillMount`.
+	     *
+	     * @optional
+	     */
+	    UNSAFE_componentWillMount: 'DEFINE_MANY',
+
+	    /**
+	     * Replacement for (deprecated) `componentWillReceiveProps`.
+	     *
+	     * @optional
+	     */
+	    UNSAFE_componentWillReceiveProps: 'DEFINE_MANY',
+
+	    /**
+	     * Replacement for (deprecated) `componentWillUpdate`.
+	     *
+	     * @optional
+	     */
+	    UNSAFE_componentWillUpdate: 'DEFINE_MANY',
+
 	    // ==== Advanced methods ====
 
 	    /**
@@ -1061,6 +1082,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	     * @overridable
 	     */
 	    updateComponent: 'OVERRIDE_BASE'
+	  };
+
+	  /**
+	   * Similar to ReactClassInterface but for static methods.
+	   */
+	  var ReactClassStaticInterface = {
+	    /**
+	     * This method is invoked after a component is instantiated and when it
+	     * receives new props. Return an object to update state in response to
+	     * prop changes. Return null to indicate no change to state.
+	     *
+	     * If an object is returned, its keys will be merged into the existing state.
+	     *
+	     * @return {object || null}
+	     * @optional
+	     */
+	    getDerivedStateFromProps: 'DEFINE_MANY_MERGED'
 	  };
 
 	  /**
@@ -1297,6 +1335,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (!statics) {
 	      return;
 	    }
+
 	    for (var name in statics) {
 	      var property = statics[name];
 	      if (!statics.hasOwnProperty(name)) {
@@ -1313,14 +1352,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	        name
 	      );
 
-	      var isInherited = name in Constructor;
-	      _invariant(
-	        !isInherited,
-	        'ReactClass: You are attempting to define ' +
-	          '`%s` on your component more than once. This conflict may be ' +
-	          'due to a mixin.',
-	        name
-	      );
+	      var isAlreadyDefined = name in Constructor;
+	      if (isAlreadyDefined) {
+	        var specPolicy = ReactClassStaticInterface.hasOwnProperty(name)
+	          ? ReactClassStaticInterface[name]
+	          : null;
+
+	        _invariant(
+	          specPolicy === 'DEFINE_MANY_MERGED',
+	          'ReactClass: You are attempting to define ' +
+	            '`%s` on your component more than once. This conflict may be ' +
+	            'due to a mixin.',
+	          name
+	        );
+
+	        Constructor[name] = createMergedResultFunction(Constructor[name], property);
+
+	        return;
+	      }
+
 	      Constructor[name] = property;
 	    }
 	  }
@@ -1628,6 +1678,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        !Constructor.prototype.componentWillRecieveProps,
 	        '%s has a method called ' +
 	          'componentWillRecieveProps(). Did you mean componentWillReceiveProps()?',
+	        spec.displayName || 'A component'
+	      );
+	      warning(
+	        !Constructor.prototype.UNSAFE_componentWillRecieveProps,
+	        '%s has a method called UNSAFE_componentWillRecieveProps(). ' +
+	          'Did you mean UNSAFE_componentWillReceiveProps()?',
 	        spec.displayName || 'A component'
 	      );
 	    }
@@ -3145,6 +3201,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  componentWillMount: function componentWillMount() {
+	    this._mounted = true;
 	    var scrollToRow = this.props.scrollToRow;
 	    if (scrollToRow !== undefined && scrollToRow !== null) {
 	      this._rowToScrollTo = scrollToRow;
@@ -3154,6 +3211,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	      this._columnToScrollTo = scrollToColumn;
 	    }
 	    this._wheelHandler = new ReactWheelHandler(this._onWheel, this._shouldHandleWheelX, this._shouldHandleWheelY);
+	  },
+
+	  componentWillUnmount: function componentWillUnmount() {
+	    this._mounted = false;
 	  },
 
 	  _shouldHandleWheelX: function _shouldHandleWheelX( /*number*/delta) /*boolean*/{
@@ -3707,7 +3768,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _onWheel: function _onWheel( /*number*/deltaX, /*number*/deltaY) {
-	    if (this.isMounted()) {
+	    if (this._mounted) {
 	      if (!this._isScrolling) {
 	        this._didScrollStart();
 	      }
@@ -3736,7 +3797,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _onHorizontalScroll: function _onHorizontalScroll( /*number*/scrollPos) {
-	    if (this.isMounted() && scrollPos !== this.state.scrollX) {
+	    if (this._mounted && scrollPos !== this.state.scrollX) {
 	      if (!this._isScrolling) {
 	        this._didScrollStart();
 	      }
@@ -3748,7 +3809,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _onVerticalScroll: function _onVerticalScroll( /*number*/scrollPos) {
-	    if (this.isMounted() && scrollPos !== this.state.scrollY) {
+	    if (this._mounted && scrollPos !== this.state.scrollY) {
 	      if (!this._isScrolling) {
 	        this._didScrollStart();
 	      }
@@ -3764,7 +3825,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _didScrollStart: function _didScrollStart() {
-	    if (this.isMounted() && !this._isScrolling) {
+	    if (this._mounted && !this._isScrolling) {
 	      this._isScrolling = true;
 	      if (this.props.onScrollStart) {
 	        this.props.onScrollStart(this.state.scrollX, this.state.scrollY);
@@ -3773,7 +3834,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _didScrollStop: function _didScrollStop() {
-	    if (this.isMounted() && this._isScrolling) {
+	    if (this._mounted && this._isScrolling) {
 	      this._isScrolling = false;
 	      this.setState({ redraw: true });
 	      if (this.props.onScrollEnd) {
@@ -4876,6 +4937,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  componentWillMount: function componentWillMount() {
+	    this._mounted = true;
 	    var isHorizontal = this.props.orientation === 'horizontal';
 	    var onWheel = isHorizontal ? this._onWheelX : this._onWheelY;
 
@@ -4893,6 +4955,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  componentWillUnmount: function componentWillUnmount() {
+	    this._mounted = false;
 	    this._nextState = null;
 	    this._mouseMoveTracker.releaseMouseMoves();
 	    if (_lastScrolledScrollbar === this) {
@@ -5119,7 +5182,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _blur: function _blur() {
-	    if (this.isMounted()) {
+	    if (this._mounted) {
 	      try {
 	        this._onBlur();
 	        ReactDOM.findDOMNode(this).blur();
@@ -5922,6 +5985,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  componentWillMount: function componentWillMount() {
+	    this._mounted = true;
 	    this._staticRowArray = [];
 	  },
 
@@ -5943,7 +6007,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  _updateBuffer: function _updateBuffer() {
-	    if (this.isMounted()) {
+	    if (this._mounted) {
 	      this.setState({
 	        rowsToRender: this._rowBuffer.getRowsWithUpdatedBuffer()
 	      });
@@ -5956,6 +6020,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 
 	  componentWillUnmount: function componentWillUnmount() {
+	    this._mounted = false;
 	    this._staticRowArray.length = 0;
 	  },
 
