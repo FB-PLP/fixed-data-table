@@ -18,6 +18,7 @@
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var React = require('./React');
+var ReactDOM = require('react-dom');
 var createReactClass = require('create-react-class');
 var ReactComponentWithPureRenderMixin = require('./ReactComponentWithPureRenderMixin');
 var ReactWheelHandler = require('./ReactWheelHandler');
@@ -44,6 +45,7 @@ var BORDER_HEIGHT = 1;
 var HEADER = 'header';
 var FOOTER = 'footer';
 var CELL = 'cell';
+var WHEEL_EVENT_OPTIONS = { passive: false };
 
 /**
  * Data grid component with fixed or scrollable header and columns.
@@ -377,6 +379,12 @@ var FixedDataTable = createReactClass({
     this._reportContentHeight();
   },
 
+  componentWillUnmount: function componentWillUnmount() {
+    if (this._containerEl) {
+      this._containerEl.removeEventListener('wheel', this._wheelHandler.onWheel, WHEEL_EVENT_OPTIONS);
+    }
+  },
+
   render: function render() /*object*/{
     var state = this.state;
     var props = this.props;
@@ -510,7 +518,7 @@ var FixedDataTable = createReactClass({
       'div',
       {
         className: joinClasses(cx('fixedDataTableLayout/main'), cx('public/fixedDataTable/main')),
-        onWheel: this._wheelHandler.onWheel,
+        ref: this._onContainerRef,
         style: { height: state.height, width: state.width } },
       React.createElement(
         'div',
@@ -556,6 +564,18 @@ var FixedDataTable = createReactClass({
       width: state.width,
       rowPositionGetter: this._scrollHelper.getRowPosition
     });
+  },
+
+  _onContainerRef: function _onContainerRef(containerRef) {
+    var containerEl = ReactDOM.findDOMNode(containerRef);
+
+    if (!(containerEl instanceof HTMLElement)) {
+      return;
+    }
+
+    containerEl.addEventListener('wheel', this._wheelHandler.onWheel, WHEEL_EVENT_OPTIONS);
+
+    this._containerEl = containerEl;
   },
 
   /**

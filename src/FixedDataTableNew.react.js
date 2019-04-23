@@ -14,6 +14,7 @@
 /*eslint no-bitwise:1*/
 
 var React = require('React');
+var ReactDOM = require('react-dom');
 var createReactClass = require('create-react-class');
 var ReactComponentWithPureRenderMixin = require('ReactComponentWithPureRenderMixin');
 var ReactWheelHandler = require('ReactWheelHandler');
@@ -40,6 +41,7 @@ var BORDER_HEIGHT = 1;
 var HEADER = 'header';
 var FOOTER = 'footer';
 var CELL = 'cell';
+var WHEEL_EVENT_OPTIONS = {passive: false};
 
 /**
  * Data grid component with fixed or scrollable header and columns.
@@ -397,6 +399,16 @@ var FixedDataTable = createReactClass({
     this._reportContentHeight();
   },
 
+  componentWillUnmount() {
+    if (this._containerEl) {
+      this._containerEl.removeEventListener(
+        'wheel',
+        this._wheelHandler.onWheel,
+        WHEEL_EVENT_OPTIONS
+      );
+    }
+  },
+
   render() /*object*/ {
     var state = this.state;
     var props = this.props;
@@ -567,7 +579,7 @@ var FixedDataTable = createReactClass({
           cx('fixedDataTableLayout/main'),
           cx('public/fixedDataTable/main'),
         )}
-        onWheel={this._wheelHandler.onWheel}
+        ref={this._onContainerRef}
         style={{height: state.height, width: state.width}}>
         <div
           className={cx('fixedDataTableLayout/rowsContainer')}
@@ -614,6 +626,22 @@ var FixedDataTable = createReactClass({
         rowPositionGetter={this._scrollHelper.getRowPosition}
       />
     );
+  },
+
+  _onContainerRef(containerRef) {
+    var containerEl = ReactDOM.findDOMNode(containerRef);
+
+    if (!(containerEl instanceof HTMLElement)) {
+      return;
+    }
+
+    containerEl.addEventListener(
+      'wheel',
+      this._wheelHandler.onWheel,
+      WHEEL_EVENT_OPTIONS
+    );
+
+    this._containerEl = containerEl;
   },
 
   /**
